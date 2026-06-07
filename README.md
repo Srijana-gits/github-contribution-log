@@ -1,16 +1,17 @@
-# Contribution [#]: [Issue Title]
+# Contribution [1]: (codex assist) Review Hashtable error-map usage in AddEditDocument2Action #2215
 
-**Contribution Number:** [1 / 2 / 3]  
-**Student:** [Your Name]  
-**Issue:** [GitHub issue link]  
-**Status:** [Phase I / Phase II / Phase III / Phase IV] [In Progress / Complete]
+**Contribution Number:** 1  
+**Student:** Srijana  
+**Issue:** https://github.com/carlos-emr/carlos/issues/2215
+**Status:** Phase I Complete
 
 ---
 
 ## Why I Chose This Issue
 
-[1-2 paragraphs explaining why this issue interests you, how it matches your skills/learning goals, what you hope to learn]
+I selected this issue because it is an active, unassigned task designated as a "good first issue" with highly specific, well-defined acceptance criteria. It provides a contained, practical opportunity for me to work on legacy Java architecture, understand request-scoping vs. thread synchronization, and practice safe refactoring without overcomplicating the project's core business logic. 
 
+Furthermore, working on an Electronic Medical Record (EMR) system aligns with my interest in seeing how software architecture handles crucial data validation workflows in real-world environments. This issue allows me to build confidence in navigating a large codebase, running targeted Maven tests, and safely updating boundaries between controllers (Actions) and views (JSPs).
 ---
 
 ## Understanding the Issue
