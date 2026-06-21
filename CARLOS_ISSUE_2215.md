@@ -3,7 +3,7 @@
 **Contribution Number:** 1  
 **Student:** Srijana  
 **Issue:** https://github.com/carlos-emr/carlos/issues/2215
-**Status:** Phase II Complete
+**Status:** Phase III Complete
 
 ---
 
@@ -143,36 +143,85 @@ test) landed together; encoder null-safety lint still passes.
 
 ### Unit Tests
 
-- [ ] Test case 1: [Description]
-- [ ] Test case 2: [Description]
-- [ ] Test case 3: [Description]
+  All unit tests live in AddEditDocument2ActionUnitTest and were run with mvn -B -Dtest=AddEditDocument2ActionUnitTest
+  test. Final run: 29 tests, 0 failures, 0 errors.
+
+  - [x] Test case 1 (new): shouldReturnFailAdd_whenDescriptionMissing — blank description in add mode returns failAdd and
+  the docerrors map contains descmissing → dms.error.descriptionInvalid. Covers a validation path that previously had no
+  test.
+  - [x] Test case 2 (new): shouldReturnFailAdd_whenDocumentTypeMissing — blank document type in add mode returns failAdd
+  and docerrors contains typemissing → dms.error.typeMissing. Also previously untested.
+  - [x] Test case 3 (adjusted): existing error-path tests widened to the Map interface — the four assertions that
+  previously cast the docerrors attribute to Hashtable<String,String> (uploaderror missing-upload, uploaderror
+  empty-replacement on failEdit, and two filenameinvalid cases) were changed to Map<String,String>. These are the runtime
+  guard: left as Hashtable, they would throw ClassCastException once the action emits a HashMap. AssertJ's containsEntry
+  works on any Map, so behavior assertions are unchanged.
+
+  Tests were run after each step (not just at the end): Step A (widen casts + add tests) → 29 pass against the old
+  Hashtable; Step B (action → HashMap/Map) → 29 pass, proving behavior is unchanged.
+
 
 ### Integration Tests
 
-- [ ] Integration scenario 1
-- [ ] Integration scenario 2
+  - [x] JSP precompilation (jspc) — mvn -B -Pjspc package -DskipTests → BUILD SUCCESS (~3:35). This compiles every JSP,
+  including editDocument.jsp, and is the build-time check that catches the JSP-side coupling. As documented in
+  Reproduction, a partial refactor makes this exact build fail with The method keys() is undefined for the type Map.
+  - N/A — No new database/Spring integration tests were needed. docerrors is request-scoped, in-memory data with no
+  persistence layer, so there is nothing to exercise at the DB/Hibernate level.
 
 ### Manual Testing
 
-[What you tested manually and results]
+  Because the regression is a compile-time / cast-type issue rather than a behavioral one, verification was done
+  deterministically at build time (jspc + unit tests) rather than by clicking through the UI. The end-to-end sequence run
+  this session:
+
+  1. Baseline jspc on the clean tree → BUILD SUCCESS (toolchain healthy, nothing mismatched).
+  2. Synthetic partial refactor (type → Map, leave .keys()) → BUILD FAILURE (reproduces the latent coupling).
+  3. Coordinated fix applied → unit tests 29/0/0 and jspc → BUILD SUCCESS.
+
+  The UI path a reviewer can use to confirm the runtime behavior manually: eDoc → open a document's Edit form → clear the 
+  Description (or Type) → Update, which forces the failEdit re-render of editDocument.jsp (the path that would throw
+  ClassCastException if the JSP cast were left as Hashtable). Browser-based manual testing was not performed for this
+  change; the jspc precompile and unit tests cover the regression.
+
 
 ---
 
 ## Implementation Notes
 
-### Week [X] Progress
-
-[What you built this week, challenges faced, decisions made]
-
-### Week [Y] Progress
-
-[Continue documenting as you work]
+  - Confirmed project conventions in CONTRIBUTING.md and .github/PULL_REQUEST_TEMPLATE.md before writing code (Conventional
+  Commits, mandatory DCO sign-off via git commit -s, target develop, focused PR, add tests).
+  - Implemented the refactor in three coordinated steps, running tests after each (Step A: tests; Step B: action; Step C:
+  JSP + jspc).
+  - Set a repo-local git identity (Srijana-gits) using the GitHub privacy noreply email so no personal email is exposed —
+  confirmed compliant with CONTRIBUTING.md (no email/privacy rule) and DCO (sign-off email matches author email).
+  - Committed locally with DCO sign-off (f162720183).
 
 ### Code Changes
+    
+- **Files modified:** 
+    - src/main/java/io/github/carlos_emr/carlos/documentManager/actions/AddEditDocument2Action.java — 3× Hashtable →
+  Map<String,String> / new HashMap<>(); swapped import java.util.Hashtable for HashMap + Map; updated two stale "hashtable"
+  comments.
+    - src/main/webapp/WEB-INF/jsp/documentManager/editDocument.jsp — declaration and cast → Map; converted the
+  Enumeration/.keys() loop to a keySet() loop (Map already importable via the existing java.util.* page import).
+    - src/test/java/io/github/carlos_emr/carlos/documentManager/actions/AddEditDocument2ActionUnitTest.java — 4 casts
+  widened to Map<String,String>; swapped Hashtable import for Map; added the two new validation tests.
+    - Diff summary: 3 files changed, 50 insertions(+), 15 deletions(-).
 
-- **Files modified:** [List]
-- **Key commits:** [Links to important commits]
-- **Approach decisions:** [Why you chose certain approaches]
+- **Key commits:** f162720183 — refactor: replace Hashtable error maps with HashMap in AddEditDocument2Action (committed
+  locally with DCO sign-off and  pushed).
+
+- **Approach decisions:** - Coordinated single change. The Hashtable→Map swap is only safe if the action, the JSP (decl + cast + .keys() loop),
+  and the test casts move together — done in one logical commit.
+    - Map at boundaries, HashMap at construction (per the maintainer's guidance), so the view depends on the interface, not
+  the concrete type.
+    - addDocument.jsp left untouched — it reads docerrors via JSTL/EL, which is already Map-agnostic.
+    - Kept the contract identical — docerrors attribute name and all error keys unchanged; no behavioral/UI change.
+    - Scope discipline — left a pre-existing unused FileValidationException import and a pre-existing sanitizeFileName
+  deprecation warning alone (both predate this change; confirmed against HEAD).
+
+
 
 ---
 
