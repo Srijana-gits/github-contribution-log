@@ -227,36 +227,83 @@ test) landed together; encoder null-safety lint still passes.
 
 ## Pull Request
 
-**PR Link:** [GitHub PR URL when submitted]
+  **PR Link:** https://github.com/carlos-emr/carlos/pull/2976
 
-**PR Description:** [Draft or final PR description - much of the content above can be adapted]
+  **PR Description:** Modernizes the request-scoped `docerrors` validation error maps in
+  `AddEditDocument2Action` from the legacy synchronized `Hashtable` to `HashMap`/`Map<String,String>`,
+  with coordinated updates to `editDocument.jsp` (decl/cast → `Map`, `.keys()` → `keySet()`) and the
+  unit-test casts. The `docerrors` attribute name and all error keys are unchanged; `addDocument.jsp`
+  needed no change (JSTL/EL is already `Map`-agnostic). Verified with the targeted unit test
+  (29 passing, incl. two new `descmissing`/`typemissing` tests) and the `jspc` precompile build.
+  Closes #2215. (Full template body: Description / Related Issues / How Was This Tested / Checklist.)
 
-**Maintainer Feedback:**
-- [Date]: [Summary of feedback received]
-- [Date]: [How you addressed it]
 
-**Status:** [Awaiting review / Iterating / Approved / Merged]
+
+  **Maintainer Feedback:**
+  - 2026-06-21: Opened PR and pinged @Ben-Heerema for review.
+  - 2026-06-22: @Ben-Heerema reviewed and asked me to apply the generics the CI bots
+      (Gemini Code Assist, Sourcery) flagged — raw `Map`/`HashMap` in the `editDocument.jsp`
+      scriptlet (lines 91, 271). Pushed a follow-up commit using `Map<String,String>`/`HashMap<>`
+      for the declaration and cast, and a typed `String` key in the `keySet()` loop (dropping the
+      redundant `(String)` cast). Re-verified: unit test 29 passing + `jspc` build green.
+
+    **Status:** Generics feedback addressed and pushed; awaiting bot re-scan and human maintainer review.
+
+  ---
+
+  ## Learnings & Reflections
+
+  ### Technical Skills Gained
+
+  - **Collections internals:** the practical difference between `Hashtable` (legacy, synchronizes
+    every operation) and `HashMap`, and why synchronization is pointless for request-scoped data
+    touched by a single thread. Learned to program to the `Map` interface at boundaries rather than
+    a concrete type.
+  - **JSP mechanics:** that a `.jsp` is translated to a Java servlet and compiled, so scriptlet code is real type-checked Java. Used the `jspc` Maven profile
+    to precompile every JSP at build time and surface type errors early. Also saw that JSTL/EL
+    (`${docerrors[...]}`) is `Map`-agnostic, which is why `addDocument.jsp` needed no change.
+  - **Struts2 flow:** how `failAdd`/`failEdit` results forward back to a JSP and how request
+    attributes carry the error map to the view.
+  - **Tooling & workflow:** targeted Maven test runs (`-Dtest=...`), the `jspc` profile, Conventional
+    Commits, DCO sign-off (`git commit -s`), using a GitHub privacy noreply email, and the
+    fork → feature-branch → PR workflow.
+
+  -  **Generics vs. raw types in JSP scriptlets:** scriptlet code is real Java, so raw `Map`
+      triggers unchecked-warning/raw-type lint just like in `.java` files. Parameterizing the
+      declaration *and* the cast (`(Map<String,String>)`) lets you drop manual casts in the loop —
+      type-safe and lint-clean.
+
+  ### Challenges Overcome
+
+  - **"Why doesn't it break in the UI?"** Initially confusing that the app looked fine. Learned the
+    two distinct failure modes: a build-time `jspc` failure (`.keys()` undefined on `Map`) and a
+    runtime `ClassCastException` on the `failEdit` re-render — neither visible from casual clicking.
+  - **Coordinated refactor:** realized the swap is only safe if the action, the JSP (decl + cast +
+    `.keys()` loop), and the test casts all move together; ran the unit tests after each step to keep
+    the tree green throughout.
+  - **Devcontainer disk-full hang:** a Docker/WSL virtual disk filling silently froze a build; fixed
+    with `docker system prune -a --volumes -f`.
+  - **Push authentication:** the first push was denied because the dev-container credential helper
+    authenticated as a different GitHub account; resolved by pushing with the `gh`-authenticated
+    credentials.
+
+  ### What I'd Do Differently Next Time
+
+  - Run the `jspc` precompile as a routine verification step earlier, not just at the end.
+  - Apply generics to scriptlet locals from the start, not raw types — the bots flag raw `Map`
+      the same as in Java code, which cost a review round.
+
+  ---
+
+  ## Resources Used
+
+  - Project docs: `CONTRIBUTING.md` and `CLAUDE.md` (commit format, DCO, security/encoding standards, test conventions).
+  - Issue #2215 thread and the maintainer's implementation pointers from @Ben-Heerema.
+  - Java documentation for `java.util.Hashtable`, `HashMap`, and `Map`.
+  - [Conventional Commits](https://www.conventionalcommits.org/) and the [Developer Certificate of 
+  Origin](https://developercertificate.org/).
+  - `jspc-maven-plugin` (used via the project's `jspc` Maven profile) for JSP precompilation.
+
 
 ---
 
-## Learnings & Reflections
-
-### Technical Skills Gained
-
-[What you learned technically]
-
-### Challenges Overcome
-
-[What was hard and how you solved it]
-
-### What I'd Do Differently Next Time
-
-[Reflection on your process]
-
----
-
-## Resources Used
-
-- [Link to helpful documentation]
-- [Tutorial or Stack Overflow post that helped]
-- [GitHub issues or discussions that helped]
